@@ -1,4 +1,5 @@
 require "nokogiri"
+require "json"
 require "rufus-lru"
 
 module FoodCritic
@@ -101,8 +102,10 @@ module FoodCritic
       file
     end
 
-    # Support function to retrieve a metadata field
-    def metadata_field(file, field)
+    # Support function to retrieve a metadata field. Defaults to metadata.rb
+    # and falls back to metadata.json
+    def metadata_field(file, field, options)
+      options = { fail_on_nonexist: true }.merge!(options)
       until (file.split(File::SEPARATOR) & standard_cookbook_subdirs).empty?
         file = File.absolute_path(File.dirname(file.to_s))
       end
@@ -113,10 +116,15 @@ module FoodCritic
         value = read_ast(md_path).xpath("//stmts_add/
           command[ident/@value='#{field}']/
           descendant::tstring_content/@value").to_s
-        raise "Cant read #{field} from #{md_path}" if value.to_s.empty?
+        raise "Can't read #{field} from #{md_path}" if value.to_s.empty? && options[:fail_on_nonexist]
         return value
+      elsif
+        json_path = File.join(file, "metadata.json")
+        json = json_file_to_hash(json_path)
+        raise "Can't read #{field} from #{json_path}" if !json.key?(field) && options[:fail_on_nonexist]
+        return json[field]
       else
-        raise "Cant find #{md_path}"
+        raise "Can't find #{md_path} or #{json_path}"
       end
     end
 
@@ -422,6 +430,11 @@ module FoodCritic
       end.reject do |path|
         File.basename(path) == ".DS_Store" || File.extname(path) == ".swp"
       end
+    end
+
+    def json_file_to_hash(filename)
+      file = File.read(filename)
+      JSON.parse(file)
     end
 
     private
