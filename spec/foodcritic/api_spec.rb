@@ -30,6 +30,7 @@ describe FoodCritic::Api do
         :find_resources,
         :gem_version,
         :included_recipes,
+        :json_file_to_hash,
         :literal_searches,
         :match,
         :metadata_field,

@@ -102,30 +102,39 @@ module FoodCritic
       file
     end
 
-    # Support function to retrieve a metadata field. Defaults to metadata.rb
+    # Retrieves a value of a metadata field. Defaults to metadata.rb
     # and falls back to metadata.json
-    def metadata_field(file, field, options)
+    #
+    # @author Miguel Fonseca
+    # @since 7.0.0
+    # @return [String] the value of the metadata field
+    def metadata_field(file, field, options = {})
       options = { fail_on_nonexist: true }.merge!(options)
       until (file.split(File::SEPARATOR) & standard_cookbook_subdirs).empty?
         file = File.absolute_path(File.dirname(file.to_s))
       end
       file = File.dirname(file) unless File.extname(file).empty?
 
+      # find value in metadata.rb if it exists
       md_path = File.join(file, "metadata.rb")
       if File.exist?(md_path)
         value = read_ast(md_path).xpath("//stmts_add/
           command[ident/@value='#{field}']/
           descendant::tstring_content/@value").to_s
         raise "Can't read #{field} from #{md_path}" if value.to_s.empty? && options[:fail_on_nonexist]
-        return value
-      elsif
-        json_path = File.join(file, "metadata.json")
+        return value.to_s.empty? ? nil : value
+      end
+
+      # if we didn't have metadata.rb we'll check metadata.json now
+      json_path = File.join(file, "metadata.json")
+      if File.exist?(json_path)
         json = json_file_to_hash(json_path)
         raise "Can't read #{field} from #{json_path}" if !json.key?(field) && options[:fail_on_nonexist]
         return json[field]
-      else
-        raise "Can't find #{md_path} or #{json_path}"
       end
+
+      # neither metadata.rb or metdata.json existed so fail
+      raise "Can't find #{md_path} or #{json_path}"
     end
 
     # The name of the cookbook containing the specified file.
@@ -372,6 +381,9 @@ module FoodCritic
     end
 
     # The list of standard cookbook sub-directories.
+    #
+    # @since 1.0.0
+    # @return [array] array of all default sub-directories in a cookbook
     def standard_cookbook_subdirs
       %w{attributes definitions files libraries providers recipes resources
          templates}
@@ -432,6 +444,13 @@ module FoodCritic
       end
     end
 
+
+    # Give a filename path it returns the hash of the JSON contents
+    #
+    # @author Tim Smith - tsmith@chef.io
+    # @since 11.0
+    # @param filename [String] path to a file in JSON format
+    # @return [Hash] hash of JSON content
     def json_file_to_hash(filename)
       file = File.read(filename)
       JSON.parse(file)
