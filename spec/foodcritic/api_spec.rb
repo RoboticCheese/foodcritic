@@ -230,6 +230,10 @@ describe FoodCritic::Api do
       mock_cookbook("/tmp/fc/mock/cb/metadata.json")
       api.cookbook_base_path("/tmp/fc/mock/cb/templates/defaults/test.erb").must_equal "/tmp/fc/mock/cb"
     end
+
+    it "raises if a non-existent file is passed" do
+      lambda { api.cookbook_base_path("/tmp/something/that/doesnt/exist.rb") }.must_raise ArgumentError
+    end
   end
 
   describe "#cookbook_name" do
