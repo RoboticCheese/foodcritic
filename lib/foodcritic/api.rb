@@ -36,7 +36,7 @@ module FoodCritic
     # Does the specified recipe check for Chef Solo?
     #
     # @deprecated chef-solo functionality in Chef has been replaced with local-mode
-    #  so this helper is no longer necessary and will be removed in Foodcritic 11.0
+    #  so this helper is no longer necessary and will be removed in Foodcritic 12.0
     def checks_for_chef_solo?(ast)
       puts "the checks_for_chef_solo? helper is deprecated and will be removed from the next release of Foodcritic"
       raise_unless_xpath!(ast)
@@ -60,7 +60,7 @@ module FoodCritic
     #
     # @see https://github.com/edelight/chef-solo-search
     # @deprecated chef-solo functionality in Chef has been replaced with local-mode
-    #  so this helper is no longer necessary and will be removed in Foodcritic 11.0
+    #  so this helper is no longer necessary and will be removed in Foodcritic 12.0
     def chef_solo_search_supported?(recipe_path)
       puts "the chef_solo_search_supported? helper is deprecated and will be removed from the next release of Foodcritic"
       return false if recipe_path.nil? || !File.exist?(recipe_path)
@@ -141,8 +141,10 @@ module FoodCritic
     def cookbook_name(file)
       raise ArgumentError, "File cannot be nil or empty" if file.to_s.empty?
 
-      # Name is a special case as we want to fallback to the cookbook directory
-      # name if metadata_field fails
+      # Determine the name of the cookbook given any file within the cookbook.
+      # Use metadata name property and fallback to dir name
+      #
+      # @return [String] the name of the cookbook
       begin
         metadata_field(file, "name")
       rescue RuntimeError
@@ -150,14 +152,18 @@ module FoodCritic
       end
     end
 
-    # The maintainer of the cookbook containing the specified file.
+    # Return metadata maintainer property given any file in the cookbook
+    #
+    # @return [String] the maintainer of the cookbook
     def cookbook_maintainer(file)
       raise ArgumentError, "File cannot be nil or empty" if file.to_s.empty?
 
       metadata_field(file, "maintainer")
     end
 
-    # The maintainer email of the cookbook containing the specified file.
+    # Return metadata maintainer_email property given any file in the cookbook
+    #
+    # @return [String] email of the maintainer of the cookbook
     def cookbook_maintainer_email(file)
       raise ArgumentError, "File cannot be nil or empty" if file.to_s.empty?
 
@@ -447,8 +453,14 @@ module FoodCritic
     # @param filename [String] path to a file in JSON format
     # @return [Hash] hash of JSON content
     def json_file_to_hash(filename)
+      raise "File #{filename} not found" unless File.exist?(filename)
+
       file = File.read(filename)
-      JSON.parse(file)
+      begin
+        JSON.parse(file)
+      rescue JSON::ParserError
+        raise "File #{filename} does not appear to contain valid JSON"
+      end
     end
 
     private
