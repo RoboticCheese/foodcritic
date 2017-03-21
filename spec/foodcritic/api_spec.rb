@@ -252,20 +252,20 @@ describe FoodCritic::Api do
     it "raises if passed an empty string" do
       lambda { api.cookbook_name("") }.must_raise ArgumentError
     end
-    it "returns the cookbook name when passed a recipe" do
-      recipe_path = "cookbooks/apache2/recipes/default.rb"
-      api.cookbook_name(recipe_path).must_equal "apache2"
-    end
-    it "returns the cookbook name when passed the cookbook metadata" do
-      api.cookbook_name("cookbooks/apache2/metadata.rb").must_equal "apache2"
-    end
-    it "returns the cookbook name when passed a template" do
-      erb_path = "cookbooks/apache2/templates/default/a2ensite.erb"
-      api.cookbook_name(erb_path).must_equal "apache2"
+    it "returns the cookbook name derived from the dir name not metadata" do
+      FileUtils.mkdir_p("/tmp/fc/cb2/")
+      File.open("/tmp/fc/cb2/metadata.rb", "w") { |file| file.write('chef_version ">= 12.1"') }
+      api.cookbook_name("/tmp/fc/cb2/metadata.rb").must_equal "cb2"
     end
     it "returns the cookbook name when passed the cookbook metadata with a name field" do
       mock_cookbook_metadata(metadata_path)
       api.cookbook_name(metadata_path).must_equal "YOUR_COOKBOOK_NAME"
+    end
+    it "returns the cookbook name when passed a recipe" do
+      FileUtils.mkdir_p("/tmp/fc/cb/recipes")
+      mock_cookbook_metadata("/tmp/fc/cb/metadata.rb")
+      File.open("/tmp/fc/cb/recipes/default.rb", "w") { |file| file.write("") }
+      api.cookbook_name("/tmp/fc/cb/recipes/default.rb").must_equal "YOUR_COOKBOOK_NAME"
     end
   end
 
